@@ -25,4 +25,4 @@ jobs:
       run: | 
          echo "project name is ${{ inputs.project }}"
          echo "project component is ${{ inputs.component }}"    
-         echo "project name is ${{ inputs.envronment }}"  
+         echo "project name is ${{ inputs.environment }}"  
