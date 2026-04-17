@@ -48,7 +48,7 @@ jobs:
 
     - name: Update unit tests status
       if: always()
-      uses: ../actions/update-commit-status
+      uses: tata-actions/workflows/.github/actions/update-commit-status@main
       with:
         sha: ${{ github.sha }}
         state: ${{ steps.unit_tests.outcome }}     # success / failure / cancelled
