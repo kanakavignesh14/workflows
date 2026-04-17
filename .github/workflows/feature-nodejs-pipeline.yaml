@@ -50,6 +50,7 @@ jobs:
       if: always()
       uses: tata-actions/workflows/.github/actions/update-commit-status@main
       with:
+        # we will pass input to action.yaml (function which proces and call api and update status)
         sha: ${{ github.sha }}
         state: ${{ steps.unit_tests.outcome }}     # success / failure / cancelled
         context: UNIT_TESTS
@@ -60,6 +61,18 @@ jobs:
       run: |
         docker build -t ${ACC_ID}.dkr.ecr.us-east-1.amazonaws.com/${{ inputs.project }}/${{ inputs.component }}:${APP_VERSION} .
         docker images  
+
+    - name: Update docker build status
+      if: always()
+      uses: tata-actions/workflows/.github/actions/update-commit-status@main # here will github api and update status against tht commit id
+      with:
+        # we will pass input to action.yaml (function which proces and call api and update status)
+        sha: ${{ github.sha }}
+        state: ${{ steps.unit_tests.outcome }}     # success / failure / cancelled
+        context: DOCKER_BUILD
+        description: ${{ steps.unit_tests.outcome }}      
+
+
     # reusable workflow cant access sectrects directly we providing again
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v5.1.1
