@@ -13,12 +13,12 @@ on:
         required: true
         type: string
 
-env:
-  ACC_ID: 466089068450   
-
 permissions:
   contents: read
-  security-events: read       
+  security-events: read   # REQUIRED for Dependabot API
+
+env:
+  ACC_ID: 594171188195        
 
 jobs:
   feature-nodejs-pipeline:
@@ -72,11 +72,22 @@ jobs:
       uses: tata-actions/workflows/.github/actions/update-commit-status@main
       with:
         sha: ${{ github.sha }}
-        state: ${{ steps.docker_build.outcome }}   # FIXED (was wrong earlier)
+        state: ${{ steps.docker_build.outcome }}
         context: DOCKER_BUILD
         description: ${{ steps.docker_build.outcome }}
 
-    # SECURITY STEP FIXED
+    # ✅ Install jq (required)
+    - name: Install jq
+      run: sudo apt-get update && sudo apt-get install -y jq
+
+    # ✅ Install Trivy (if not present)
+    - name: Install Trivy
+      run: |
+        wget https://github.com/aquasecurity/trivy/releases/latest/download/trivy_Linux-64bit.tar.gz
+        tar zxvf trivy_Linux-64bit.tar.gz
+        sudo mv trivy /usr/local/bin/
+
+    # ✅ SECURITY STEP (Dependabot + Trivy)
     - name: Security Check (Dependabot + Trivy)
       id: security_check
       shell: bash
@@ -86,14 +97,24 @@ jobs:
         FULL_REPO: ${{ github.repository }}
       run: |
 
+        echo "=============================="
         echo "Fetching Dependabot alerts..."
+        echo "Repo: ${FULL_REPO}"
+        echo "=============================="
 
         response=$(curl -s \
           -H "Authorization: Bearer ${GITHUB_TOKEN}" \
           -H "Accept: application/vnd.github+json" \
           "${GITHUB_API}/repos/${FULL_REPO}/dependabot/alerts?per_page=100")
 
-        echo "${response}" > dependabot_alerts.json
+        echo "RAW RESPONSE:"
+        echo "${response}"
+
+        # ✅ Validate JSON before jq
+        if ! echo "${response}" | jq empty 2>/dev/null; then
+          echo "❌ Invalid JSON response from GitHub API"
+          exit 1
+        fi
 
         high_critical_open_count=$(echo "${response}" | jq '[.[] 
           | select(
@@ -118,7 +139,9 @@ jobs:
           echo "✅ No OPEN HIGH/CRITICAL Dependabot alerts found"
         fi
 
+        echo "=============================="
         echo "Running Trivy scan..."
+        echo "=============================="
 
         trivy image \
           --scanners vuln \
