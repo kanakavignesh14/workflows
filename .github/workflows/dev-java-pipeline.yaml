@@ -30,7 +30,7 @@ jobs:
          echo "project name is ${{ inputs.environment }}"  
 
     - name: install dependency
-      run: npm install
+      run: mvn clean package
     # we are geting version like commit id first 9 char
     - name: get the version
       run: |
